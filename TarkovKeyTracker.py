@@ -9,39 +9,37 @@ path = './database.db'
 
 # Global vars
 dbExists = os.path.isfile(path)
+result_frame = None
+top = None
 
 # Tkinter stuff
 root = Tk()
 root.title('JohnnyChops Keypedia')
 
-def searchKey():
-    keyResult = keyEntry.get()
-    if keyResult:
-        top = Toplevel()
-        top.geometry("1200x600")
-        top.config(bg='gray63')
+def addKey(key):
+    conn = sqlite3.connect(path)
+    c = conn.cursor()
+    c.execute("UPDATE Keys SET amount = amount + 1 WHERE key = ?", (key,))
+    conn.commit()
+    conn.close()
+    messagebox.showinfo("Updated", f"added {key}")
 
-        # Create a frame for the canvas and scrollbar
-        frame = Frame(top, bg='gray63')
-        frame.pack(fill=BOTH, expand=1)
+def subtractKey(key):
+    conn = sqlite3.connect(path)
+    c = conn.cursor()
+    c.execute("UPDATE Keys SET amount = amount - 1 WHERE key = ? AND amount > 0", (key,))
+    conn.commit()
+    conn.close()
+    messagebox.showinfo("Updated", f"removed {key}")
 
-        # Create a canvas and add it to the frame
-        canvas = Canvas(frame, bg='gray63')
-        canvas.pack(side=LEFT, fill=BOTH, expand=1)
+def refreshResults():
+    global result_frame
+    if result_frame is not None:
+        for widget in result_frame.winfo_children():
+            widget.destroy()
 
-        # Add a scrollbar to the frame
-        scrollbar = Scrollbar(frame, orient=VERTICAL, command=canvas.yview)
-        scrollbar.pack(side=RIGHT, fill=Y)
-
-        # Configure the canvas to use the scrollbar
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-
-        # Create another frame inside the canvas
-        result_frame = Frame(canvas, bg='gray63')
-        canvas.create_window((0, 0), window=result_frame, anchor="nw")
-
-        Label(result_frame, bg='yellow', text=f"Results for '{keyResult}':").grid(row=0, column=0, columnspan=3)
+        keyResult = keyEntry.get()
+        Label(result_frame, bg='yellow', text=f"Results for '{keyResult}':").grid(row=0, column=0, columnspan=5)
 
         # Database search logic here
         conn = sqlite3.connect(path)
@@ -55,10 +53,47 @@ def searchKey():
                 Label(result_frame, bg='cornflower blue', text=f"Key: {result[0]}").grid(row=idx, column=0, padx=10, pady=5)
                 Label(result_frame, bg='green', text=f"Amount: {result[1]}").grid(row=idx, column=1, padx=10, pady=5)
                 Label(result_frame, bg='gray63', text=f"Description: {result[2]}").grid(row=idx, column=2, padx=10, pady=5)
+                Button(result_frame, text="+", command=lambda key=result[0]: addKey(key)).grid(row=idx, column=3, padx=5)
+                Button(result_frame, text="-", command=lambda key=result[0]: subtractKey(key)).grid(row=idx, column=4, padx=5)
         else:
-            Label(result_frame, text="No results found.", bg='gray63').grid(row=1, column=0, columnspan=3)
+            Label(result_frame, text="No results found.", bg='gray63').grid(row=1, column=0, columnspan=5)
+
+def searchKey():
+    global result_frame, top
+    keyResult = keyEntry.get()
+    if keyResult:
+        if top is None or not top.winfo_exists():
+            top = Toplevel()
+            top.geometry("1200x600")
+            top.config(bg='gray63')
+
+            # Create a frame for the canvas and scrollbar
+            frame = Frame(top, bg='gray63')
+            frame.pack(fill=BOTH, expand=1)
+
+            # Create a canvas and add it to the frame
+            canvas = Canvas(frame, bg='gray63')
+            canvas.pack(side=LEFT, fill=BOTH, expand=1)
+
+            # Add a scrollbar to the frame
+            scrollbar = Scrollbar(frame, orient=VERTICAL, command=canvas.yview)
+            scrollbar.pack(side=RIGHT, fill=Y)
+
+            # Configure the canvas to use the scrollbar
+            canvas.configure(yscrollcommand=scrollbar.set)
+            canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+            # Create another frame inside the canvas
+            result_frame = Frame(canvas, bg='gray63')
+            canvas.create_window((0, 0), window=result_frame, anchor="nw")
+
+            # Add refresh button
+            Button(top, text="Refresh", command=refreshResults).pack()
+
+        refreshResults()
     else:
         messagebox.showerror("Error", "Please enter a key to search.")
+
 
 
 def createdb():
@@ -86,7 +121,7 @@ def createdb():
         ('dorm room 114 key', 0, 'Customs three stack keep for pharmacist quest, supposed to spawn in the jacket at the checkpoint'),
         ('dorm room 118 key', 0, 'Customs three stack, has tweo jackets keep if enough space'),
         ('dorm room 203 key', 0, 'customs three stack keep for shaking up teller, only has two duffle bags '),
-        ('dorm room 204 key', 0, 'Customs three stack, kinda trahs one weapon locker, loose loot'),
+        ('dorm room 204 key', 0, 'Customs three stack, kinda trash one weapon locker, loose loot'),
         ('dorm room 206 key', 0, 'customs two stack quest to make therapist all wet or something otherwise can maybe spawn w filters'),
         ('dorm room 214 key', 0, 'customs three stack This is an optional quest location for the Quest Shaking up the Teller if you dont have a Dorm room 203 key has a safe loose loot'),
         ('dorm room 218 key', 0, 'customs three stack loose weapon loot, kinda trash'),
@@ -110,53 +145,53 @@ def createdb():
         ('shturmans stash key', 0, 'woods keep, stash in on the log pile'),
         ('yotota car key', 0, 'The pickup truck parked in the lumber yard next to the three cabins on Woods. loose loot also for a trade from skier for an mp-153'),
         ('zb-014 key', 0, 'woods keep bunker boy is an extract sometimes and has loot for some icecream cones'),
-        ('cottage back door key', 0, 'Description for key4'),
-        ('cottage safe key', 0, 'Description for key4'),
-        ('gas station safe key', 0, 'Description for key4'),
-        ('health resort east wing office room 107 key', 0, 'Description for key4'),
-        ('Health Resort east wing office room 108 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 205 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 206 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 209 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 213 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 216 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 222 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 226 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 306 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 308 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 310 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 313 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 314 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 316 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 322 key', 0, 'Description for key4'),
-        ('Health Resort east wing room 328 key', 0, 'Description for key4'),
-        ('Health Resort management office safe key', 0, 'Description for key4'),
-        ('Health Resort management warehouse safe key', 0, 'Description for key4'),
-        ('Health Resort office key with a blue tape', 0, 'Description for key4'),
-        ('Health Resort universal utility room key', 0, 'Description for key4'),
-        ('Health Resort west wing office room 104 key', 0, 'Description for key4'),
-        ('Health Resort west wing office room 112 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 203 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 203 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 205 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 207 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 216 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 218 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 219 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 220 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 221 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 222 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 301 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 303 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 306 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 309 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 321 safe key', 0, 'Description for key4'),
-        ('Health Resort west wing room 323 key', 0, 'Description for key4'),
-        ('Health Resort west wing room 325 key', 0, 'Description for key4'),
-        ('HEP station storage room key', 0, 'Description for key4'),
-        ('SMW car key', 0, 'Description for key4'),
-        ('Vorons hideout key', 0, 'Description for key4'),
-        ('Weather station safe key', 0, 'Description for key4'),
+        ('cottage back door key', 0, 'shoreline back door to cottage needed for quest Colleagues - Part 2 some loot inside'),
+        ('cottage safe key', 0, 'shoreline Unlocks the safe on the second floor in the locked Villa on Shoreline'),
+        ('gas station safe key', 0, 'literally useless its always unlocked'),
+        ('health resort east wing office room 107 key', 0, 'shoreline ledx and gpu spawn'),
+        ('Health Resort east wing office room 108 key', 0, 'shoreline again useless rooms always unlocked'),
+        ('Health Resort east wing room 205 key', 0, 'shoreline can get to 206 few weapon boxes loose meds'),
+        ('Health Resort east wing room 206 key', 0, 'shoreline can get to 205, few weapon boxes loose meds, Rare loose loot'),
+        ('Health Resort east wing room 209 key', 0, 'shoreline can get to 213, however its always open silly guy '),
+        ('Health Resort east wing room 213 key', 0, 'shoreline its always open silly guy'),
+        ('Health Resort east wing room 216 key', 0, 'shoreline its always open silly guy'),
+        ('Health Resort east wing room 222 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 226 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 306 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 308 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 310 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 313 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 314 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 316 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 322 key', 0, 'shoreline for key4'),
+        ('Health Resort east wing room 328 key', 0, 'shoreline for key4'),
+        ('Health Resort management office safe key', 0, 'shoreline for key4'),
+        ('Health Resort management warehouse safe key', 0, 'shoreline for key4'),
+        ('Health Resort office key with a blue tape', 0, 'shoreline for key4'),
+        ('Health Resort universal utility room key', 0, 'shoreline for key4'),
+        ('Health Resort west wing office room 104 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing office room 112 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 203 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 203 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 205 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 207 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 216 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 218 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 219 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 220 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 221 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 222 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 301 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 303 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 306 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 309 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 321 safe key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 323 key', 0, 'shoreline for key4'),
+        ('Health Resort west wing room 325 key', 0, 'shoreline for key4'),
+        ('HEP station storage room key', 0, 'shoreline for key4'),
+        ('SMW car key', 0, 'shoreline for key4'),
+        ('Vorons hideout key', 0, 'shoreline for key4'),
+        ('Weather station safe key', 0, 'shoreline for key4'),
         ('EMERCOM medical unit key', 0, 'interchange starts here for key4'),
         ('Goshan cash register key', 0, 'Description for key4'),
         ('Grumpys hideout key', 0, 'Description for key4'),
