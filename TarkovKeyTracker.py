@@ -64,7 +64,7 @@ def searchKey():
     if keyResult:
         if top is None or not top.winfo_exists():
             top = Toplevel()
-            top.geometry("1200x600")
+            top.geometry("1800x600")
             top.config(bg='gray63')
 
             # Create a frame for the canvas and scrollbar
@@ -93,6 +93,54 @@ def searchKey():
         refreshResults()
     else:
         messagebox.showerror("Error", "Please enter a key to search.")
+
+def showAllKeys():
+    global result_frame, top
+    if top is None or not top.winfo_exists():
+        top = Toplevel()
+        top.geometry("1800x600")
+        top.config(bg='gray63')
+
+        # Create a frame for the canvas and scrollbar
+        frame = Frame(top, bg='gray63')
+        frame.pack(fill=BOTH, expand=1)
+
+        # Create a canvas and add it to the frame
+        canvas = Canvas(frame, bg='gray63')
+        canvas.pack(side=LEFT, fill=BOTH, expand=1)
+
+        # Add a scrollbar to the frame
+        scrollbar = Scrollbar(frame, orient=VERTICAL, command=canvas.yview)
+        scrollbar.pack(side=RIGHT, fill=Y)
+
+        # Configure the canvas to use the scrollbar
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        # Create another frame inside the canvas
+        result_frame = Frame(canvas, bg='gray63')
+        canvas.create_window((0, 0), window=result_frame, anchor="nw")
+
+    for widget in result_frame.winfo_children():
+        widget.destroy()
+
+    Label(result_frame, bg='yellow', text="All Keys with Amount > 0:").grid(row=0, column=0, columnspan=5)
+
+    conn = sqlite3.connect(path)
+    c = conn.cursor()
+    c.execute("SELECT * FROM Keys WHERE amount > 0")
+    results = c.fetchall()
+    conn.close()
+
+    if results:
+        for idx, result in enumerate(results, start=1):
+            Label(result_frame, bg='cornflower blue', text=f"Key: {result[0]}").grid(row=idx, column=0, padx=10, pady=5)
+            Label(result_frame, bg='green', text=f"Amount: {result[1]}").grid(row=idx, column=1, padx=10, pady=5)
+            Label(result_frame, bg='gray63', text=f"Description: {result[2]}").grid(row=idx, column=2, padx=10, pady=5)
+            Button(result_frame, text="+", command=lambda key=result[0]: addKey(key)).grid(row=idx, column=3, padx=5)
+            Button(result_frame, text="-", command=lambda key=result[0]: subtractKey(key)).grid(row=idx, column=4, padx=5)
+    else:
+        Label(result_frame, text="No keys with amount > 0 found.", bg='gray63').grid(row=1, column=0, columnspan=5)
 
 
 
@@ -334,7 +382,9 @@ keyEntry.grid(row=1, column=0, columnspan=20, padx=100, pady=50)
 
 # Button
 searchButton = Button(root, text="Search", command=searchKey)
-searchButton.grid(row=1, column=18, padx=10)
+searchButton.grid(row=1, column=19, padx=10)
+showAllButton = Button(root, text="Show All owned Keys", command=showAllKeys)
+showAllButton.grid(row=2, column=19, padx=10)
 
 # Mainloop
 root.mainloop()
